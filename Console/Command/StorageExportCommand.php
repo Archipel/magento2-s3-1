@@ -76,14 +76,20 @@ class StorageExportCommand extends \Symfony\Component\Console\Command\Command
         /** @var \Thai\S3\Model\MediaStorage\File\Storage\S3 $destinationModel */
         $destinationModel = $this->coreFileStorage->getStorageModel(\Thai\S3\Model\MediaStorage\File\Storage::STORAGE_MEDIA_S3);
 
-        $offset = 0;
+       $offset = 0;
         while (($files = $sourceModel->exportFiles($offset, 1)) !== false) {
             foreach ($files as $file) {
-                $object = ltrim($file['directory'] . '/' . $file['filename'], '/');
+                $filename_key = $file['directory'] . '/' . $file['filename'];
+                if (!$this->client->doesObjectExist($this->helper->getBucket(), $filename_key)) { // File Not Exist in Bucket
+                    $output->writeln(sprintf('Uploading %s to use S3.', $file['directory'] . '/' . $file['filename']));
+                    $destinationModel->importFiles($files);
+                }else{
+                  $output->writeln('Skipping ... '.$filename_key);
+                }
 
-                $output->writeln(sprintf('Uploading %s to use S3.', $object));
+
             }
-            $destinationModel->importFiles($files);
+
             $offset += count($files);
         }
     }
