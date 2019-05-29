@@ -121,11 +121,17 @@ class StorageExportCommand extends Command
             $offset = 0;
             while (($files = $sourceModel->exportFiles($offset, 1)) !== false) {
                 foreach ($files as $file) {
-                    $object = ltrim($file['directory'] . '/' . $file['filename'], '/');
-
-                    $output->writeln(sprintf('Uploading %s to use S3.', $object));
+                $filename_key = $file['directory'] . '/' . $file['filename'];
+                if (!$this->client->doesObjectExist($this->helper->getBucket(), $filename_key)) { // File Not Exist in Bucket
+                    $output->writeln(sprintf('Uploading %s to use S3.', $file['directory'] . '/' . $file['filename']));
+                    $destinationModel->importFiles($files);
+                }else{
+                  $output->writeln('Skipping ... '.$filename_key);
                 }
-                $destinationModel->importFiles($files);
+
+
+                }
+
                 $offset += count($files);
             }
 
